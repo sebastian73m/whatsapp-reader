@@ -98,3 +98,7 @@ Las fechas sin hora usan `WHATSAPP_READER_TIME_ZONE`. Las fechas-hora deben incl
 El ingestor es el único proceso que escribe. El MCP abre SQLite en modo de solo lectura. Para producción, mantenga el ingestor como servicio bajo un usuario dedicado y conserve `auth/` y `data/` en almacenamiento persistente.
 
 SQLite usa WAL. Para un respaldo consistente, detenga brevemente el ingestor o use la API de backup de SQLite; no copie únicamente el archivo `.sqlite` mientras existan archivos `-wal` activos. Las credenciales de `auth/` deben respaldarse y cifrarse con el mismo cuidado que la base.
+
+## Licencia
+
+Este proyecto se distribuye bajo la [licencia MIT](LICENSE).

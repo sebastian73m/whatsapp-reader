@@ -2,6 +2,7 @@
   "name": "whatsapp-reader",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Ingesta local read-only de WhatsApp y servidor MCP de consulta.",
   "engines": {
