@@ -1,0 +1,38 @@
+{
+  "name": "whatsapp-reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ingesta local read-only de WhatsApp y servidor MCP de consulta.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "tsx src/migrate.ts",
+    "ingest": "tsx src/ingest.ts",
+    "mcp": "node dist/mcp.js",
+    "smoke:mcp": "node scripts/smoke-mcp.mjs",
+    "check": "npm run test && npm run typecheck && npm run build && npm run smoke:mcp"
+  },
+  "dependencies": {
+    "@hapi/boom": "10.0.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "baileys": "7.0.0-rc14",
+    "better-sqlite3": "12.4.1",
+    "dotenv": "17.2.2",
+    "pino": "9.9.4",
+    "qrcode-terminal": "0.12.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "22.18.6",
+    "@types/qrcode-terminal": "0.12.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.2",
+    "vitest": "3.2.7"
+  }
+}
