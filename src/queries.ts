@@ -53,6 +53,10 @@ export class Queries {
     this.repository = new Repository(db);
   }
 
+  resolveChat(chat: string): string {
+    return this.repository.resolveChat(chat);
+  }
+
   searchMessages(query: string, options: SearchOptions): MessageResult[] {
     const chatJid = options.chat ? this.repository.resolveChat(options.chat) : undefined;
     const filter = messageFilters(options, chatJid);

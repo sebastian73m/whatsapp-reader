@@ -6,9 +6,11 @@ import process from "node:process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { openDatabase, Repository } from "../dist/db.js";
+import { startSendIpcServer } from "../dist/send-ipc.js";
 
 const temporaryDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatsapp-reader-smoke-"));
 const databasePath = path.join(temporaryDir, "smoke.sqlite");
+const sendSocketPath = path.join(temporaryDir, "send.sock");
 
 function parseText(result) {
   const content = result.content.find((item) => item.type === "text");
@@ -32,6 +34,12 @@ repository.upsertMessage({
 });
 db.close();
 
+const sent = [];
+const sendServer = await startSendIpcServer(sendSocketPath, async (chatJid, text) => {
+  sent.push({ chatJid, text });
+  return { messageId: "smoke-outgoing-1" };
+});
+
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [path.resolve("dist/mcp.js")],
@@ -39,6 +47,7 @@ const transport = new StdioClientTransport({
   env: {
     ...process.env,
     WHATSAPP_READER_DB_PATH: databasePath,
+    WHATSAPP_READER_SEND_SOCKET: sendSocketPath,
     WHATSAPP_READER_TIME_ZONE: "UTC",
   },
   stderr: "pipe",
@@ -50,7 +59,7 @@ try {
   const listed = await client.listTools();
   assert.deepEqual(
     listed.tools.map((tool) => tool.name).sort(),
-    ["get_chats", "get_messages", "search_contacts", "search_messages"],
+    ["get_chats", "get_messages", "search_contacts", "search_messages", "send_message"],
   );
 
   const chats = parseText(await client.callTool({ name: "get_chats", arguments: { query: "Smoke" } }));
@@ -61,8 +70,20 @@ try {
   assert.equal(messages.results.length, 1);
   assert.equal(messages.results[0].id, "smoke-1");
 
-  process.stdout.write("Smoke MCP correcto: handshake, listado y consultas validados.\n");
+  const outgoing = parseText(await client.callTool({
+    name: "send_message",
+    arguments: { chat: "Smoke Test", message: "respuesta de prueba", confirmed: true },
+  }));
+  assert.deepEqual(outgoing, {
+    status: "accepted",
+    chat_jid: "smoke@g.us",
+    message_id: "smoke-outgoing-1",
+  });
+  assert.deepEqual(sent, [{ chatJid: "smoke@g.us", text: "respuesta de prueba" }]);
+
+  process.stdout.write("Smoke MCP correcto: handshake, listado, consultas y envío validados.\n");
 } finally {
   await client.close();
+  await sendServer.close();
   fs.rmSync(temporaryDir, { recursive: true, force: true });
 }

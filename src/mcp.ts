@@ -6,12 +6,20 @@ import { config } from "./config.js";
 import { ChatResolutionError, openDatabase } from "./db.js";
 import { parseRange } from "./dates.js";
 import { Queries } from "./queries.js";
+import { SendIpcClientError, sendTextViaIpc, type SendReceipt } from "./send-ipc.js";
 
 const readOnlyAnnotations = {
   readOnlyHint: true,
   destructiveHint: false,
   idempotentHint: true,
   openWorldHint: false,
+} as const;
+
+const sendAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
 } as const;
 
 function boundedLimit(value: number | undefined, fallback: number, maximum: number): number {
@@ -29,6 +37,12 @@ function failure(error: unknown) {
       isError: true,
     };
   }
+  if (error instanceof SendIpcClientError) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: error.code, message: error.message }, null, 2) }],
+      isError: true,
+    };
+  }
   return {
     content: [{ type: "text" as const, text: JSON.stringify({ error: "invalid_request", message: error instanceof Error ? error.message : "Error desconocido" }) }],
     isError: true,
@@ -37,7 +51,12 @@ function failure(error: unknown) {
 
 const dateField = z.string().max(40).optional().describe("ISO-8601. YYYY-MM-DD usa la zona configurada; fecha-hora exige Z u offset.");
 
-export function createMcpServer(queries: Queries): McpServer {
+type SendText = (chatJid: string, message: string) => Promise<SendReceipt>;
+
+export function createMcpServer(
+  queries: Queries,
+  sendText: SendText = (chatJid, message) => sendTextViaIpc(config.sendSocketPath, chatJid, message, config.sendTimeoutMs),
+): McpServer {
   const server = new McpServer({ name: "whatsapp-mcp", version: "0.1.0" });
 
   server.registerTool("search_messages", {
@@ -106,6 +125,25 @@ export function createMcpServer(queries: Queries): McpServer {
   }, async ({ query, limit }) => {
     try {
       return response({ results: queries.searchContacts(query, boundedLimit(limit, config.defaultLimit, 100)) });
+    } catch (error) {
+      return failure(error);
+    }
+  });
+
+  server.registerTool("send_message", {
+    title: "Enviar mensaje de WhatsApp",
+    description: "Envía un mensaje de texto a un chat conocido mediante la sesión activa del ingestor. Produce un efecto externo real y no es idempotente.",
+    inputSchema: {
+      chat: z.string().min(1).max(300).describe("Nombre inequívoco o JID exacto de un chat ya conocido."),
+      message: z.string().min(1).max(4096).refine((value) => value.trim().length > 0, "El mensaje no puede contener sólo espacios"),
+      confirmed: z.literal(true).describe("Debe ser true únicamente después de que el usuario haya autorizado el destinatario y el texto."),
+    },
+    annotations: sendAnnotations,
+  }, async ({ chat, message }) => {
+    try {
+      const chatJid = queries.resolveChat(chat);
+      const receipt = await sendText(chatJid, message);
+      return response({ status: "accepted", chat_jid: chatJid, message_id: receipt.messageId });
     } catch (error) {
       return failure(error);
     }

@@ -27,6 +27,8 @@ export const config = {
   dataDir,
   dbPath: path.resolve(process.env.WHATSAPP_READER_DB_PATH ?? path.join(dataDir, "whatsapp.sqlite")),
   authDir: path.resolve(process.env.WHATSAPP_READER_AUTH_DIR ?? "./auth"),
+  sendSocketPath: path.resolve(process.env.WHATSAPP_READER_SEND_SOCKET ?? path.join(dataDir, "send.sock")),
+  sendTimeoutMs: positiveInt("WHATSAPP_READER_SEND_TIMEOUT_MS", 15_000, 60_000),
   timeZone: validateTimeZone(process.env.WHATSAPP_READER_TIME_ZONE ?? "UTC"),
   defaultLimit: positiveInt("WHATSAPP_READER_DEFAULT_LIMIT", 20, 100),
   logLevel: process.env.WHATSAPP_READER_LOG_LEVEL ?? "info",

@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Ingesta local read-only de WhatsApp y servidor MCP de consulta.",
+  "description": "Ingesta local de WhatsApp y servidor MCP para consultar y enviar mensajes.",
   "engines": {
     "node": ">=20"
   },
@@ -16,6 +16,7 @@
     "ingest": "tsx src/ingest.ts",
     "mcp": "node dist/mcp.js",
     "smoke:mcp": "node scripts/smoke-mcp.mjs",
+    "smoke:container": "node scripts/smoke-container-mcp.mjs",
     "check": "npm run test && npm run typecheck && npm run build && npm run smoke:mcp"
   },
   "dependencies": {
