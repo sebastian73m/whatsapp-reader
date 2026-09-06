@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import process from "node:process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -166,7 +167,7 @@ async function main(): Promise<void> {
   await server.connect(transport);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error: unknown) => {
     process.stderr.write(`No se pudo iniciar whatsapp-mcp: ${error instanceof Error ? error.message : "error desconocido"}\n`);
     process.exitCode = 1;

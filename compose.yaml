@@ -1,17 +1,5 @@
 name: whatsapp-reader
 
-x-whatsapp-environment: &whatsapp-environment
-  WHATSAPP_READER_DATA_DIR: /app/data
-  WHATSAPP_READER_DB_PATH: /app/data/whatsapp.sqlite
-  WHATSAPP_READER_AUTH_DIR: /app/auth
-  WHATSAPP_READER_SEND_SOCKET: /app/data/send.sock
-  WHATSAPP_READER_SEND_TIMEOUT_MS: "${WHATSAPP_READER_SEND_TIMEOUT_MS:-15000}"
-  WHATSAPP_READER_TIME_ZONE: "${WHATSAPP_READER_TIME_ZONE:-America/Argentina/Buenos_Aires}"
-  WHATSAPP_READER_DEFAULT_LIMIT: "${WHATSAPP_READER_DEFAULT_LIMIT:-20}"
-  WHATSAPP_READER_LOG_LEVEL: "${WHATSAPP_READER_LOG_LEVEL:-info}"
-  WHATSAPP_READER_MAX_RECONNECT_ATTEMPTS: "${WHATSAPP_READER_MAX_RECONNECT_ATTEMPTS:-8}"
-  WHATSAPP_READER_RECONNECT_BASE_MS: "${WHATSAPP_READER_RECONNECT_BASE_MS:-1000}"
-
 x-runtime-security: &runtime-security
   init: true
   cap_drop:
@@ -28,7 +16,6 @@ services:
     image: whatsapp-reader:local
     container_name: whatsapp-reader
     command: ["node", "dist/ingest.js"]
-    environment: *whatsapp-environment
     volumes:
       - whatsapp-data:/app/data
       - whatsapp-auth:/app/auth

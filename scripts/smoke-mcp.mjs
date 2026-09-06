@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,9 +9,11 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { openDatabase, Repository } from "../dist/db.js";
 import { startSendIpcServer } from "../dist/send-ipc.js";
 
+import { resolveSendSocketPath } from "../dist/ipc-path.js";
+
 const temporaryDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatsapp-reader-smoke-"));
 const databasePath = path.join(temporaryDir, "smoke.sqlite");
-const sendSocketPath = path.join(temporaryDir, "send.sock");
+const sendSocketPath = resolveSendSocketPath(undefined, temporaryDir);
 
 function parseText(result) {
   const content = result.content.find((item) => item.type === "text");
@@ -40,9 +43,13 @@ const sendServer = await startSendIpcServer(sendSocketPath, async (chatJid, text
   return { messageId: "smoke-outgoing-1" };
 });
 
+// Ejercita también la detección del entrypoint con caracteres escapados en file URLs.
+const entryPath = path.resolve("dist", `mcp smoke #${randomUUID()}.js`);
+fs.copyFileSync(path.resolve("dist/mcp.js"), entryPath);
+
 const transport = new StdioClientTransport({
   command: process.execPath,
-  args: [path.resolve("dist/mcp.js")],
+  args: [entryPath],
   cwd: process.cwd(),
   env: {
     ...process.env,
@@ -85,5 +92,6 @@ try {
 } finally {
   await client.close();
   await sendServer.close();
+  fs.rmSync(entryPath, { force: true });
   fs.rmSync(temporaryDir, { recursive: true, force: true });
 }

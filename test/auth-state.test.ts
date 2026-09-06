@@ -39,7 +39,21 @@ describe("backup de credenciales", () => {
 
     await expect(backupCredentials(directory)).resolves.toBe(true);
     expect(JSON.parse(fs.readFileSync(path.join(directory, "creds.backup.json"), "utf8"))).toEqual(linkedCredentials());
-    expect(fs.statSync(path.join(directory, "creds.backup.json")).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") {
+      expect(fs.statSync(path.join(directory, "creds.backup.json")).mode & 0o777).toBe(0o600);
+    }
+  });
+
+  it("reemplaza un backup existente y no deja temporales", async () => {
+    const directory = temporaryDirectory();
+    const current = path.join(directory, "creds.json");
+    fs.writeFileSync(current, JSON.stringify(linkedCredentials()));
+    await backupCredentials(directory);
+    const updated = { ...linkedCredentials(), nextPreKeyId: 42 };
+    fs.writeFileSync(current, JSON.stringify(updated));
+    await expect(backupCredentials(directory)).resolves.toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(directory, "creds.backup.json"), "utf8"))).toEqual(updated);
+    expect(fs.readdirSync(directory).sort()).toEqual(["creds.backup.json", "creds.json"]);
   });
 
   it("restaura creds.json desde el backup si una escritura quedó corrupta", async () => {

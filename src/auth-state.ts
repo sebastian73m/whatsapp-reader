@@ -50,6 +50,10 @@ async function atomicWrite(filename: string, contents: string): Promise<void> {
     }
     await rename(temporary, filename);
 
+    // Windows no permite abrir/sincronizar directorios como POSIX.
+    // El contenido ya está sincronizado antes del reemplazo en ambos sistemas.
+    if (process.platform === "win32") return;
+
     // Persistir también la operación de rename frente a un corte abrupto.
     const directory = await open(path.dirname(filename), "r");
     try {

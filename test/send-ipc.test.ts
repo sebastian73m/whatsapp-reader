@@ -11,13 +11,15 @@ import {
   type SendIpcServer,
 } from "../src/send-ipc.js";
 
+import { resolveSendSocketPath } from "../src/ipc-path.js";
+
 const temporaryDirs: string[] = [];
 const servers: SendIpcServer[] = [];
 
 function temporarySocket(): string {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "whatsapp-send-ipc-"));
   temporaryDirs.push(directory);
-  return path.join(directory, "send.sock");
+  return resolveSendSocketPath(undefined, directory);
 }
 
 function observeIncomingChunk(expected: Buffer): Promise<void> {
@@ -90,7 +92,7 @@ async function startFragmentedResponseServer(socketPath: string): Promise<SendIp
   return {
     close: async () => {
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-      fs.rmSync(socketPath, { force: true });
+      if (process.platform !== "win32") fs.rmSync(socketPath, { force: true });
     },
   };
 }
@@ -113,7 +115,24 @@ describe("IPC de envío", () => {
     await expect(sendTextViaIpc(socketPath, "familia@g.us", "Nos vemos a las 18", 1_000))
       .resolves.toEqual({ messageId: "outgoing-1" });
     expect(received).toEqual([{ chatJid: "familia@g.us", text: "Nos vemos a las 18" }]);
-    expect(fs.statSync(socketPath).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(fs.statSync(socketPath).mode & 0o777).toBe(0o600);
+  });
+
+  it("rechaza un segundo servidor sin interrumpir al primero", async () => {
+    const socketPath = temporarySocket();
+    servers.push(await startSendIpcServer(socketPath, async () => ({ messageId: "original" })));
+    await expect(startSendIpcServer(socketPath, async () => ({ messageId: "duplicate" }))).rejects.toThrow();
+    await expect(sendTextViaIpc(socketPath, "familia@g.us", "Hola", 1_000))
+      .resolves.toEqual({ messageId: "original" });
+  });
+
+  it("permite reiniciar el servidor con la misma dirección", async () => {
+    const socketPath = temporarySocket();
+    const first = await startSendIpcServer(socketPath, async () => ({ messageId: "first" }));
+    await first.close();
+    servers.push(await startSendIpcServer(socketPath, async () => ({ messageId: "second" })));
+    await expect(sendTextViaIpc(socketPath, "familia@g.us", "Hola", 1_000))
+      .resolves.toEqual({ messageId: "second" });
   });
 
   it("propaga errores operativos sin exponer excepciones internas", async () => {

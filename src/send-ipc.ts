@@ -111,8 +111,11 @@ export async function startSendIpcServer(
   socketPath: string,
   sendText: (chatJid: string, text: string) => Promise<SendReceipt>,
 ): Promise<SendIpcServer> {
-  await fs.promises.mkdir(path.dirname(socketPath), { recursive: true, mode: 0o700 });
-  await prepareSocketPath(socketPath);
+  const windows = process.platform === "win32";
+  if (!windows) {
+    await fs.promises.mkdir(path.dirname(socketPath), { recursive: true, mode: 0o700 });
+    await prepareSocketPath(socketPath);
+  }
   const clients = new Set<net.Socket>();
 
   const server = net.createServer((client) => {
@@ -165,17 +168,27 @@ export async function startSendIpcServer(
   await new Promise<void>((resolve, reject) => {
     const onError = (error: Error) => reject(error);
     server.once("error", onError);
-    server.listen(socketPath, () => {
+    server.listen({ path: socketPath, readableAll: false, writableAll: false }, () => {
       server.off("error", onError);
       resolve();
     });
   });
-  await fs.promises.chmod(socketPath, 0o600);
+  if (!windows) {
+    try {
+      await fs.promises.chmod(socketPath, 0o600);
+    } catch (error) {
+      for (const client of clients) client.destroy();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      throw error;
+    }
+  }
 
   return {
     close: async () => {
       for (const client of clients) client.destroy();
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+      // Windows elimina la pipe al cerrar el último handle; no es un archivo.
+      if (windows) return;
       try {
         const stat = await fs.promises.lstat(socketPath);
         if (stat.isSocket()) await fs.promises.unlink(socketPath);
