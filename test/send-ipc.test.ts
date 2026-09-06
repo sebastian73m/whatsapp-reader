@@ -135,6 +135,17 @@ describe("IPC de envío", () => {
       .resolves.toEqual({ messageId: "second" });
   });
 
+  it("normaliza rutas de archivo en servidor y cliente sin configuración global", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "whatsapp-send-raw-"));
+    temporaryDirs.push(directory);
+    const rawPath = path.join(directory, "send.sock");
+    servers.push(await startSendIpcServer(rawPath, async () => ({ messageId: "normalized" })));
+    await expect(sendTextViaIpc(rawPath, "familia@g.us", "Hola", 1_000))
+      .resolves.toEqual({ messageId: "normalized" });
+    await expect(sendTextViaIpc(resolveSendSocketPath(rawPath, directory), "familia@g.us", "Hola", 1_000))
+      .resolves.toEqual({ messageId: "normalized" });
+  });
+
   it("propaga errores operativos sin exponer excepciones internas", async () => {
     const socketPath = temporarySocket();
     const server = await startSendIpcServer(socketPath, async () => {

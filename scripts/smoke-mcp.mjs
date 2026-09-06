@@ -50,7 +50,7 @@ fs.copyFileSync(path.resolve("dist/mcp.js"), entryPath);
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [entryPath],
-  cwd: process.cwd(),
+  cwd: temporaryDir,
   env: {
     ...process.env,
     WHATSAPP_READER_DB_PATH: databasePath,

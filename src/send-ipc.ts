@@ -3,6 +3,7 @@ import net from "node:net";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
+import { resolveSendSocketPath } from "./ipc-path.js";
 
 const PROTOCOL_VERSION = 1;
 const MAX_REQUEST_BYTES = 32 * 1024;
@@ -111,6 +112,7 @@ export async function startSendIpcServer(
   socketPath: string,
   sendText: (chatJid: string, text: string) => Promise<SendReceipt>,
 ): Promise<SendIpcServer> {
+  socketPath = resolveSendSocketPath(socketPath, path.dirname(socketPath));
   const windows = process.platform === "win32";
   if (!windows) {
     await fs.promises.mkdir(path.dirname(socketPath), { recursive: true, mode: 0o700 });
@@ -205,6 +207,7 @@ export async function sendTextViaIpc(
   message: string,
   timeoutMs: number,
 ): Promise<SendReceipt> {
+  socketPath = resolveSendSocketPath(socketPath, path.dirname(socketPath));
   const requestId = randomUUID();
   const request: SendRequest = {
     version: PROTOCOL_VERSION,

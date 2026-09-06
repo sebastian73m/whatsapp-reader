@@ -21,6 +21,7 @@ describe("direcciones IPC por plataforma", () => {
   it("respeta pipes locales explícitas sin resolverlas como archivos", () => {
     const pipe = "\\\\.\\pipe\\reader-custom";
     expect(resolveSendSocketPath(pipe, "C:\\data", "win32")).toBe(pipe);
+    expect(resolveSendSocketPath(resolveSendSocketPath(undefined, "C:\\data", "win32"), "C:\\other", "win32")).toBe(resolveSendSocketPath(undefined, "C:\\data", "win32"));
     expect(() => resolveSendSocketPath(pipe, "/app/data", "linux")).toThrow(/Windows/);
     expect(() => resolveSendSocketPath("\\\\remote\\pipe\\reader", "C:\\data", "win32")).toThrow(/local/);
     expect(() => resolveSendSocketPath("\\\\.\\pipe\\", "C:\\data", "win32")).toThrow(/nombre/);

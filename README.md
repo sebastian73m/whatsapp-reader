@@ -118,6 +118,8 @@ npm run check
 
 ### Instalación en Windows nativo
 
+La [guía operativa de Windows](docs/WINDOWS.md) detalla runtime persistente separado, ACL, tarea al iniciar sesión, cierre limpio y respaldo/restauración.
+
 Instale Node.js 22 o 24 para Windows y abra PowerShell. Sitúe el repositorio en una carpeta privada, por ejemplo `$HOME\proyectos\whatsapp-reader`:
 
 ```powershell
