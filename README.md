@@ -104,7 +104,7 @@ SQLite usa WAL. Para un respaldo consistente, detenga brevemente el ingestor o u
 
 El mismo código admite Linux y Windows nativo, sin WSL ni Docker. Use Node.js 22 o 24 y disco local persistente para `auth/` y `data/`. Instale las dependencias en cada sistema: `better-sqlite3` incluye un módulo nativo, por lo que no debe copiar `node_modules` desde otro sistema operativo. Los comandos de esta sección se ejecutan en el anfitrión.
 
-La matriz de GitHub Actions ejecuta `npm run check` en Ubuntu y Windows con Node.js 22 y 24. Incluye pruebas, tipos, compilación y un cliente MCP real con consultas y envío simulado; no vincula una cuenta real.
+La [plantilla de GitHub Actions](docs/ci/check.yml) prepara `npm run check` en Ubuntu y Windows con Node.js 22 y 24. Su activación está pendiente: las credenciales de publicación disponibles no permiten escribir workflows. Para activarla, una credencial con permiso `workflow` debe moverla a `.github/workflows/check.yml` y publicar el cambio. Incluye pruebas, tipos, compilación y un cliente MCP real con consultas y envío simulado; no vincula una cuenta real.
 
 ### Instalación en Linux
 
